@@ -2,7 +2,7 @@ import torch
 import numpy as np
 import torch.nn.functional as F
 import os
-
+import glob
 
 class RNGDataset(torch.utils.data.dataset.Dataset):
     def __init__(self, file_dir, maxlen=100, step=3, num_class=256):
@@ -30,7 +30,7 @@ class RNGDataset(torch.utils.data.dataset.Dataset):
 
 
 class BinaryRNGDataset(torch.utils.data.dataset.Dataset):
-    def __init__(self, file_dir, maxlen=100, step=3, num_class=256):
+    def __init__(self, file_dir, maxlen=20, step=1, num_class=256):
         super(BinaryRNGDataset, self).__init__()
         print("Loading RNG data...")
         self.file_dir = file_dir
@@ -56,12 +56,12 @@ class BinaryRNGDataset(torch.utils.data.dataset.Dataset):
 
 
 class QRNGDataset(torch.utils.data.dataset.Dataset):
-    def __init__(self, file_dir, maxlen=20, step=1, num_class=256, split=[0, 1], twelve=True):
+    def __init__(self, file_dir, maxlen=20, step=3, num_class=256, split=[0, 1], nbits=12):
         super(QRNGDataset, self).__init__()
         print("Loading RNG data...")
         self.file_dir = file_dir
         self.num_class = num_class
-        self.twelve = twelve
+        self.nbits = nbits
         self.data = self.load_data()
         self.size = ((len(self.data) - maxlen) // step)
 
@@ -72,7 +72,7 @@ class QRNGDataset(torch.utils.data.dataset.Dataset):
         # print(self.split)
         self.size = self.split[1] - self.split[0]
         self.data = self.data[self.split[0] * step:self.split[1] * step + maxlen]
-        self.data = torch.tensor(self.data.astype(np.int32))
+        self.data = torch.from_numpy(self.data.astype(np.int32))
         # print("size:", self.size)
         print("size:", (self.split[1] - self.split[0]))
 
@@ -88,15 +88,17 @@ class QRNGDataset(torch.utils.data.dataset.Dataset):
 
     def load_data(self):
         if os.path.isdir(self.file_dir):
-            files = os.listdir(self.file_dir)
-            files = [f for f in files if '.dat' in f]
-            data = [self.read_data(os.path.join(self.file_dir, f), twelve=self.twelve) for f in files]
+#            files = os.listdir(self.file_dir)
+#            files = [f for f in files if '.dat' in f]
+#            data = [self.read_data(os.path.join(self.file_dir, f), nbits=self.nbits) for f in files]
+            files = [f for f in glob.glob(self.file_dir + "**/150m*/**/raw*.dat", recursive=True)]
+#            print(files)
+            data = [self.read_data(f, nbits=self.nbits) for f in files]
             return np.concatenate(data)
         else:
-            return self.read_data(self.file_dir, twelve=self.twelve)
-
-    def read_data(self, data_chunk, twelve=True):
-        if not twelve:
+            return self.read_data(self.file_dir, nbits=self.nbits)
+    def read_data(self, data_chunk, nbits=12):
+        if nbits!=12:
             return np.fromfile(data_chunk, dtype=np.uint8)
         data = np.fromfile(data_chunk, dtype=np.uint8)
         fst_uint8, mid_uint8, lst_uint8 = np.reshape(data, (data.shape[0] // 3, 3)).astype(np.uint16).T
@@ -106,19 +108,20 @@ class QRNGDataset(torch.utils.data.dataset.Dataset):
 
 
 class BinaryQRNGDataset(torch.utils.data.dataset.Dataset):
-    def __init__(self, file_dir, maxlen=20, step=3, num_class=256, split=[0, 1], twelve=True):
+    def __init__(self, file_dir, maxlen=20, step=3, num_class=256, split=[0, 1], nbits=12):
         super(BinaryQRNGDataset, self).__init__()
         print("Loading RNG data...")
         self.file_dir = file_dir
+        self.nbits=nbits
         self.num_class = num_class
-        self.twelve = twelve
         self.data = self.load_data()
         self.size = ((len(self.data) - maxlen) // step)
-        self.data = torch.from_numpy(self.data.astype(np.int32))
         self.step = step
         self.maxlen = maxlen
         # print(self.size)
         self.split = [int(x * self.size) for x in split]
+        self.data = self.data[self.split[0] * step:self.split[1] * step+maxlen]
+        self.data = torch.from_numpy(self.data.astype(np.int32))
         # print(self.split)
         self.size = self.split[1] - self.split[0]
 
@@ -132,20 +135,23 @@ class BinaryQRNGDataset(torch.utils.data.dataset.Dataset):
         assert 0 <= item < self.size
         # print(self.num_class)
         # print(self.X[item])
-        start = self.step * item + self.split[0]
-        return self.data[start:start + self.maxlen], (self.data[start + self.maxlen] > 2047).long()
+        start = self.step * item
+        return self.data[start:start + self.maxlen], (self.data[start + self.maxlen] > 2**(self.nbits-1)-1).long()
 
     def load_data(self):
         if os.path.isdir(self.file_dir):
-            files = os.listdir(self.file_dir)
-            files = [f for f in files if '.dat' in f]
-            data = [self.read_data(os.path.join(self.file_dir, f), twelve=self.twelve) for f in files]
+#            files = os.listdir(self.file_dir)
+#            files = [f for f in files if '.dat' in f]
+#            data = [self.read_data(os.path.join(self.file_dir, f), nbits=self.nbits) for f in files]
+            files = [f for f in glob.glob(self.file_dir + "**/150m*/**/raw*.dat", recursive=True)]
+            print(files)
+            data = [self.read_data(f, nbits=self.nbits) for f in files]
             return np.concatenate(data)
         else:
-            return self.read_data(self.file_dir, twelve=self.twelve)
+            return self.read_data(self.file_dir, nbits=self.nbits)
 
-    def read_data(self, data_chunk, twelve=True):
-        if not twelve:
+    def read_data(self, data_chunk, nbits=12):
+        if nbits!=12:
             return np.fromfile(data_chunk, dtype=np.uint8)
         data = np.fromfile(data_chunk, dtype=np.uint8)
         fst_uint8, mid_uint8, lst_uint8 = np.reshape(data, (data.shape[0] // 3, 3)).astype(np.uint16).T

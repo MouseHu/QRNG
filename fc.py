@@ -24,7 +24,7 @@ class ResFC(nn.Module):
 
     def __init__(self, num_classes=256, input_bits=8):
         super(ResFC, self).__init__()
-        MIDDLE_SHAPE = 2048
+        MIDDLE_SHAPE = 4096
         self.input_bits = input_bits
         # self.num_class = num_classes
         self.input_fc_1 = nn.Linear(20 * (2 ** input_bits), 1024)

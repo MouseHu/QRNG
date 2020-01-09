@@ -16,31 +16,32 @@ kwargs = {'num_workers': 1, 'pin_memory': True} if cuda else {}
 
 maxlen = 10
 step = 5
-epochs = 100
-batch_size = 16384
-log_interval = 2
-a, b = 'raw','raw'
+epochs = 40
+batch_size = 8192
+log_interval = 20
+a, b = 'raw_150','raw_150'
 train_loader = torch.utils.data.DataLoader(
-    BinaryQRNGDataset('./data/qrng/Vacuum_Fluctuation/rawdata-5-16-combine1G_150m.dat', split=[0, 0.7],num_class=2048),
+    QRNGDataset('./data2/vacuum/', split=[0, 0.7],num_class=256,nbits=12),
+    #BinaryQRNGDataset('./data/qrng/IDQ/1G/', split=[0, 0.7],num_class=256,nbits=8),
     batch_size=batch_size,
     shuffle=True,
     **kwargs)
 
 test_loader = torch.utils.data.DataLoader(
-    BinaryQRNGDataset('./data/qrng/Vacuum_Fluctuation/rawdata-5-16-combine1G_150m.dat', split=[0.7, 1],num_class=2048),
+    QRNGDataset('./data2/vacuum/', split=[0.7, 1],num_class=256,nbits=12),
+#    BinaryQRNGDataset('./data/qrng/IDQ/1G/', split=[0.7, 1],num_class=256,nbits=8),
     batch_size=batch_size,
     shuffle=True, **kwargs)
 
 #model = Warpper(RCNN(batch_size=batch_size)).to(device)
 # model = Warpper(SelfAttention(batch_size=batch_size)).to(device)
 #model = Warpper(AttentionModel(batch_size=batch_size)).to(device)
-model = ResFC(num_classes =2,input_bits=12)
+model = ResFC(num_classes =4096,input_bits=12)
 if torch.cuda.device_count()>1:
     print("Let's use {} GPUs".format(torch.cuda.device_count()))
     model = nn.DataParallel(model)
 model.to(device)
-optimizer = optim.Adam(model.parameters(), lr=1e-3)
-
+optimizer = optim.Adam(model.parameters(), lr=1e-3,weight_decay=0)
 
 for epoch in range(1, epochs + 1):
     model.train()
@@ -48,7 +49,8 @@ for epoch in range(1, epochs + 1):
     total_correct = 0
     for batch_idx, (x, y) in enumerate(train_loader):
         x, y = x.to(device), y.to(device)
-        # print(data.shape)
+
+        #print((y<0).any(),(y>=4096).any(),y[y<0],y[y>=4096])
         optimizer.zero_grad()
         correct, loss = model(x, y)
         loss.sum().backward()
@@ -64,7 +66,7 @@ for epoch in range(1, epochs + 1):
                        100. * batch_idx / len(train_loader),
                        loss.sum().item() / len(x), total_correct / (batch_idx + 1) / batch_size, b, end='\r'))
 
-    if epoch % 3 == 0:
+    if epoch % 1 == 0:
         model.eval()
         test_loss = 0
         total_correct = 0
