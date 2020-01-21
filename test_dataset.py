@@ -14,12 +14,12 @@ def load_data(file_dir):
         return np.fromfile(file_dir, dtype=np.uint8)
 
 
-dataset = BinaryQRNGDataset("./data/qrng/Vacuum_Fluctuation/Random-key-rawdata-5-16-combine1G_150m.dat", split=[0.7, 1],
+dataset = BinaryQRNGDataset("./data2/vacuum/", split=[0,0.7],
                             num_class=256,
-                            twelve=False)
+                            nbits=12)
 # dataset = load_data("./data/qrng/IDQ/1G/")
 data = dataset.data.numpy()
-y = [data[dataset.step * item + dataset.split[0] + dataset.maxlen] > 127 for item in range(len(dataset))]
+y = [data[dataset.step * item + dataset.split[0] + dataset.maxlen]%(2**0)==0 for item in range(len(dataset))]
 
 y = np.array(y)
 
@@ -28,4 +28,4 @@ x = np.arange(len(y))
 
 print(np.max(y) / np.sum(y))
 plt.plot(x, y)
-plt.show()
+plt.savefig("bincount.png")

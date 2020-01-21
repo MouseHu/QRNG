@@ -22,12 +22,12 @@ class ResBlock(nn.Module):
 
 class ResFC(nn.Module):
 
-    def __init__(self, num_classes=256, input_bits=8):
+    def __init__(self, num_classes=256, input_bits=8,seqlen=100):
         super(ResFC, self).__init__()
         MIDDLE_SHAPE = 4096
         self.input_bits = input_bits
-        # self.num_class = num_classes
-        self.input_fc_1 = nn.Linear(20 * (2 ** input_bits), 1024)
+        self.seqlen = seqlen
+        self.input_fc_1 = nn.Linear(seqlen * (2 ** input_bits), 1024)
         self.input_fc_2 = nn.Linear(1024, MIDDLE_SHAPE)
         self.residual = self.make_residual(MIDDLE_SHAPE)
         self.output_fc_1 = nn.Linear(MIDDLE_SHAPE, num_classes)
@@ -44,7 +44,7 @@ class ResFC(nn.Module):
 
     def forward(self, x, y):
         x = F.one_hot(x.long(), num_classes=2 ** self.input_bits).float()
-        x = x.reshape(-1, 20 * (2 ** self.input_bits))
+        x = x.reshape(-1, self.seqlen* (2 ** self.input_bits))
         x = nn.ReLU()(self.input_fc_1(x))
         x = nn.ReLU()(self.input_fc_2(x))
         x = self.residual(x)

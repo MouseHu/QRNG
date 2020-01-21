@@ -32,7 +32,7 @@ class RNGDataset(torch.utils.data.dataset.Dataset):
 
 
 class BinaryRNGDataset(torch.utils.data.dataset.Dataset):
-    def __init__(self, file_dir, maxlen=20, step=1, num_class=256):
+    def __init__(self, file_dir, maxlen=100, step=1, num_class=256):
         super(BinaryRNGDataset, self).__init__()
         print("Loading RNG data...")
         self.file_dir = file_dir
@@ -93,7 +93,7 @@ class QRNGDataset(torch.utils.data.dataset.Dataset):
             #            files = os.listdir(self.file_dir)
             #            files = [f for f in files if '.dat' in f]
             #            data = [self.read_data(os.path.join(self.file_dir, f), nbits=self.nbits) for f in files]
-            files = [f for f in glob.glob(self.file_dir + "**/150m*/**/raw*.dat", recursive=True)]
+            files = [f for f in glob.glob(self.file_dir, recursive=True)]
             #            print(files)
             data = [self.read_data(f, nbits=self.nbits) for f in files]
             return np.concatenate(data)
@@ -141,14 +141,14 @@ class BinaryQRNGDataset(torch.utils.data.dataset.Dataset):
         # print(self.num_class)
         # print(self.X[item])
         start = self.step * item
-        return self.data[start:start + self.maxlen], (self.data[start + self.maxlen] % (2**self.predict_bit)==0).long()
+        return self.data[start:start + self.maxlen], (self.data[start + self.maxlen] % (2**(self.predict_bit+1))>=2**(self.predict_bit)).long()
 
     def load_data(self):
         if os.path.isdir(self.file_dir):
             #            files = os.listdir(self.file_dir)
             #            files = [f for f in files if '.dat' in f]
             #            data = [self.read_data(os.path.join(self.file_dir, f), nbits=self.nbits) for f in files]
-            files = [f for f in glob.glob(self.file_dir + "**/150m*/**/raw*.dat", recursive=True)]
+            files = [f for f in glob.glob(self.file_dir, recursive=True)]
             print(files)
             data = [self.read_data(f, nbits=self.nbits) for f in files]
             return np.concatenate(data)

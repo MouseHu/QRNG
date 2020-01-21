@@ -17,26 +17,27 @@ parser.add_argument("--predict", type=int, default=0,dest="predict")
 parser.add_argument("--batch_size", type=int, default=8192,dest="batch_size")
 parser.add_argument("--cuda", type=bool, default=True,dest="cuda")
 parser.add_argument("--epochs", type=int, default=40,dest="epochs")
+parser.add_argument("--seqlen", type=int, default=100,dest="seqlen")
 args = parser.parse_args()
 
 device = torch.device("cuda" if args.cuda else "cpu")
 kwargs = {'num_workers': 1, 'pin_memory': True} if args.cuda else {}
 
-maxlen = 10
-step = 5
+maxlen = 30
+step = 1
 log_interval = 20
 a, b = 'raw_150', 'raw_150'
 
 train_loader = torch.utils.data.DataLoader(
-    # BinaryQRNGDataset('./data2/vacuum/', split=[0, 0.7], num_class=256, nbits=12, predict_bit=args.predict),
-    BinaryQRNGDataset('../../data/qrng/IDQ/1G/', split=[0, 0.07], num_class=256, nbits=8, predict_bit=args.predict),
+#    BinaryQRNGDataset('./data2/vacuum/**/150m*/**/raw*.dat', split=[0, 0.7], num_class=256, nbits=12, predict_bit=args.predict),
+    BinaryQRNGDataset('./data/qrng/Vacuum_Fluctuation/rawdata-5-16-combine1G_150m.dat', split=[0, 0.7], num_class=4096, nbits=12, predict_bit=args.predict,maxlen=args.seqlen),
     batch_size=args.batch_size,
     shuffle=True,
     **kwargs)
 
 test_loader = torch.utils.data.DataLoader(
-    # BinaryQRNGDataset('./data2/vacuum/', split=[0.7, 1], num_class=256, nbits=12, predict_bit=args.predict),
-    BinaryQRNGDataset('../../data/qrng/IDQ/1G/', split=[0.99, 1],num_class=256,nbits=8, predict_bit=args.predict),
+    #BinaryQRNGDataset('./data2/vacuum/**/150m*/**/raw*.dat', split=[0.7, 1], num_class=256, nbits=12, predict_bit=args.predict),
+    BinaryQRNGDataset('./data/qrng/Vacuum_Fluctuation/rawdata-5-16-combine1G_150m.dat', split=[0.7, 1],num_class=4096,nbits=12,maxlen=args.seqlen, predict_bit=args.predict),
     batch_size=args.batch_size,
     shuffle=True, **kwargs)
 
@@ -44,7 +45,7 @@ test_loader = torch.utils.data.DataLoader(
 # model = Warpper(SelfAttention(batch_size=args.batch_size)).to(device)
 # model = Warpper(AttentionModel(batch_size=args.batch_size)).to(device)
 
-model = ResFC(num_classes=4096, input_bits=12)
+model = ResFC(num_classes=2, input_bits=12,seqlen=args.seqlen)
 if torch.cuda.device_count() > 1:
     print("Let's use {} GPUs".format(torch.cuda.device_count()))
     model = nn.DataParallel(model)
