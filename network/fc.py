@@ -3,7 +3,7 @@ from torch import nn
 from torch import optim
 import torch.nn.functional as F
 import numpy as np
-from dataset import RNGDataset
+# from dataset import RNGDataset
 
 
 class ResBlock(nn.Module):
@@ -51,6 +51,7 @@ class ResFC(nn.Module):
 
         x = self.output_fc_1(x)
         x = nn.Softmax(dim=1)(x)
+        # print(x.shape,y.shape)
         loss = nn.CrossEntropyLoss()(x, y)
         _, predict = torch.max(x, dim=1)
         correct = (predict == y).sum()
