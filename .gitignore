@@ -1,8 +1,6 @@
 data/
 data2/
-model/
 *.model
-*.txt
 __pycache__/
 .idea/
 

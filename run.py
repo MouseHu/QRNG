@@ -1,7 +1,7 @@
 import torch
 from torch import nn
 from torch import optim
-from dataset import QRNGDataset
+from dataset.dataset import QRNGDataset
 import argparse
 from network.mylinformer import MyLinFormer
 

@@ -30,7 +30,7 @@ class Predictor(pl.LightningModule):
         # print(loss)
         return loss
 
-    def test_step(self, batch, batch_idx):
+    def validation_step(self, batch, batch_idx):
         x, y = batch
         correct, loss = self(x, y)
 
@@ -42,7 +42,7 @@ class Predictor(pl.LightningModule):
         train_loader = torch.utils.data.DataLoader(self.train_dataset(), num_workers=8,batch_size=self.hparams.batch_size, shuffle=True)
         return train_loader
 
-    def test_dataloader(self):
+    def val_dataloader(self):
         test_loader = torch.utils.data.DataLoader(self.test_dataset(),  num_workers=8,batch_size=self.hparams.batch_size, shuffle=False)
         return test_loader
 
