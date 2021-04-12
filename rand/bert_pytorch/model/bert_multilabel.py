@@ -1,15 +1,15 @@
 import torch.nn as nn
 
-from .transformer import TransformerBlock
 from .embedding import BERTEmbedding
+from .transformer import TransformerBlock
 
 
-class BERT(nn.Module):
+class BERTMultiLabel(nn.Module):
     """
     BERT model : Bidirectional Encoder Representations from Transformers.
     """
 
-    def __init__(self, vocab_size, hidden=768, n_layers=12, attn_heads=12, dropout=0.1):
+    def __init__(self, vocab_size, hidden=768, n_layers=12, attn_heads=12, dropout=0.1, seq_len=192, label_len=256):
         """
         :param vocab_size: vocab_size of total words
         :param hidden: BERT model hidden size
@@ -31,8 +31,8 @@ class BERT(nn.Module):
 
         # multi-layers transformer blocks, deep network
         self.transformer_blocks = nn.ModuleList(
-            [TransformerBlock(hidden, attn_heads, hidden * 4, dropout) for _ in range(n_layers)]+
-        [])
+            [TransformerBlock(hidden, attn_heads, hidden * 4, dropout) for _ in range(n_layers)])
+        self.pre_classifier = nn.Linear(seq_len, label_len)
 
     def forward(self, x):
         # attention masking for padded token
@@ -44,6 +44,9 @@ class BERT(nn.Module):
 
         # running over multiple transformer blocks
         for transformer in self.transformer_blocks:
-            x = transformer.forward(x, mask)
-
+            x = transformer(x, mask)
+        # print(x.shape)
+        x = x.transpose(1, 2)
+        x = self.pre_classifier(x)
+        x = x.transpose(1, 2)
         return x

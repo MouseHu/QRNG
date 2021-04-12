@@ -1,9 +1,10 @@
-from torch.utils.data import Dataset
-import tqdm
-import torch
-import random
-import numpy as np
 import pickle
+import random
+
+import torch
+from torch.utils.data import Dataset
+import os
+import numpy as np
 
 
 class BERTDataset(Dataset):
@@ -75,7 +76,7 @@ class BERTDataset(Dataset):
 
                 # 80% randomly change token to mask token
                 # if prob < 0.8:
-                tokens[i] = self.vocab-1
+                tokens[i] = self.vocab - 1
 
                 # 10% randomly change token to random token
                 # elif prob < 0.9:
@@ -132,3 +133,59 @@ class BERTDataset(Dataset):
                 self.random_file.__next__()
             line = self.random_file.__next__()
         return line[:-1].split("\t")[1]
+
+
+class ReversedDataset(Dataset):
+    def __init__(self, corpus_path, label_path, vocab, seq_len, label_seqlen, train=True):
+        self.vocab = vocab
+        self.seq_len = seq_len
+        self.label_seqlen = label_seqlen
+
+        self.corpus_path = corpus_path
+        self.label_path = label_path
+
+        self.split = 0.7
+        self.lines = self.load_data(corpus_path, train, seq_len)
+        self.lines = list(self.lines.reshape(-1, seq_len))
+        self.corpus_lines = len(self.lines)
+
+        self.labels = self.load_data(label_path, train, label_seqlen)
+        self.labels = list(self.labels.reshape(-1, label_seqlen))
+        self.labels_lines = len(self.lines)
+
+        assert self.labels_lines == self.corpus_lines
+
+    def __len__(self):
+        return self.corpus_lines
+
+    def __getitem__(self, item):
+        bert_input, bert_label = self.get_data(item)
+        # bert_label = self.random_label(bert_label)
+
+        output = {"bert_input": torch.tensor(bert_input),
+                  "bert_label": torch.tensor(bert_label).long()}
+
+        return output
+
+    def get_data(self, index):
+        return self.lines[index], self.labels[index]
+
+    def random_label(self, label):
+        # currently no use
+        return label
+
+    def load_data(self, data_dir, train=True, seqlen=256):
+        if os.path.isdir(data_dir):
+            files = os.listdir(data_dir)
+            files = [f for f in files if '.dat' in f]
+            data = [np.fromfile(os.path.join(data_dir, f), dtype=np.uint8) for f in files]
+            raw_data = np.concatenate(data)
+        else:
+            raw_data = np.fromfile(data_dir, dtype=np.uint8)
+        assert len(raw_data) % seqlen == 0, len(raw_data)
+        split = (int(len(raw_data) * self.split) // seqlen) * seqlen
+        if train:
+            raw_data = raw_data[0:split]
+        else:
+            raw_data = raw_data[split:]
+        return raw_data
