@@ -101,10 +101,10 @@ class BellPredictor(Predictor):
 
     def validation_step(self, batch, batch_idx):
         correct, loss, info = self(*batch)
-
+        distribution = info['distribution']
         self.log('val_loss', loss, on_step=True, on_epoch=True)
         val_distribution = np.zeros((8, 2))
-        for xybit, correct, total in info:
+        for xybit, correct, total in distribution:
             val_distribution[xybit, :] += np.array([correct, total])
         # self.val_distribution += info
         return val_distribution

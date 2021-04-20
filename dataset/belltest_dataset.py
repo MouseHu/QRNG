@@ -29,15 +29,18 @@ class BellTestDataset(RNGDataset):
         raw_data = raw_data[int(split[0] * len(raw_data)):int(split[1] * len(raw_data))]
         print(len(raw_data))
         # xy = [x >> 5 for x in raw_data] + [(x >> 1) % 8 for x in raw_data]
-        xy = np.concatenate([(raw_data >> 5).reshape(-1,1), ((raw_data >> 1) % 8).reshape(-1,1)],axis=1)
+        xy = np.concatenate([(raw_data >> 5).reshape(-1, 1), ((raw_data >> 1) % 8).reshape(-1, 1)], axis=1)
         # ab = [(x >> 4) % 2 for x in raw_data] + [x % 2 for x in raw_data]
-        ab = np.concatenate([((raw_data >> 4)%2).reshape(-1,1), (raw_data % 2).reshape(-1,1)], axis=1)
+        ab = np.concatenate([((raw_data >> 4) % 2).reshape(-1, 1), (raw_data % 2).reshape(-1, 1)], axis=1)
         xy, ab = xy.reshape(-1), ab.reshape(-1)
         xy, ab = torch.from_numpy(xy), torch.from_numpy(ab)
         return xy, ab
 
     def __getitem__(self, item):
         assert 0 <= item < self.size
-        start = item
+        if item % 2 == 0:
+            start = item
+        else:
+            start = item - 1
         return self.xy[start:start + self.seqlen].long(), self.ab[start:start + self.seqlen].long(), \
-               self.xy[start + self.seqlen].long(), self.ab[start + self.seqlen].long()
+               self.xy[item + self.seqlen].long(), self.ab[item + self.seqlen].long()

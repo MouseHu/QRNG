@@ -22,7 +22,7 @@ class CNN(nn.Module):
         }.get(backbone, 'resnet50')
 
     def forward(self, x, y):
-        embedding = self.embed(x)
+        embedding = self.embed(x.long())
         input_text = embedding.permute(0, 2, 1)
         resnet_out = self.backbone(input_text)
 
@@ -68,13 +68,24 @@ class BellCNN(nn.Module):
         out = torch.gather(out, dim=1, index=xy2).squeeze()
 
         loss = nn.CrossEntropyLoss()(out, ab)
-        _, predict = torch.max(out, dim=1)
+        maxp, predict = torch.max(out, dim=1)
+        # maxp = maxp.exp() /torch.sum(out.exp(), dim=1)
         sum_correct = (predict == ab).sum()
         xy = xy.detach().cpu().numpy().squeeze()
         correct = (predict == ab).detach().cpu().numpy()
         distribution = []
+        # maxp, predict = maxp.detach().cpu().numpy(), predict.detach().cpu().numpy()
         for i in range(2 ** self.xy_bits):
             # print(correct,xy)
             distribution.append((i, np.sum(correct[xy == i]), np.sum(xy == i)))
         # print(np.sum(correct))
-        return sum_correct, loss, distribution
+        info = {
+            "distribution": distribution,
+            # "max_prop": maxp,
+            # "prediction": predict,
+            # "correct": ab.detach().cpu().numpy().squeeze(),
+            # "xybit": xy,
+
+        }
+
+        return sum_correct, loss, info

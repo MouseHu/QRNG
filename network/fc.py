@@ -105,13 +105,23 @@ class BellResFC(nn.Module):
         x = torch.gather(x, dim=1, index=xy2).squeeze()
 
         loss = nn.CrossEntropyLoss()(x, ab)
-        _, predict = torch.max(x, dim=1)
+        maxp, predict = torch.max(x, dim=1)
+        maxp = maxp.exp() / torch.sum(x.exp(), dim=1)
         sum_correct = (predict == ab).sum()
         xy = xy.detach().cpu().numpy().squeeze()
         correct = (predict == ab).detach().cpu().numpy()
         distribution = []
+        maxp, predict = maxp.detach().cpu().numpy(), predict.detach().cpu().numpy()
         for i in range(2 ** self.xy_bits):
             # print(correct,xy)
             distribution.append((i, np.sum(correct[xy == i]), np.sum(xy == i)))
         # print(np.sum(correct))
-        return sum_correct, loss, distribution
+        info = {
+            "distribution": distribution,
+            "max_prop": maxp,
+            "prediction": predict,
+            "correct": ab.detach().cpu().numpy().squeeze(),
+            "xybit": xy,
+        }
+
+        return sum_correct, loss, info
