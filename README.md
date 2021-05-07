@@ -3,7 +3,7 @@ An AI suite used to find the pattern in random numbers, especially for Quantum R
 
 # Install environment
 
-create a new conda environment with python=, then run:
+create a new conda environment with python=3.8, then run:
 ```
 pip install -r requirements.txt
 ```
